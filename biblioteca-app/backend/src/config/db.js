@@ -4,7 +4,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 const useWindowsAuth = process.env.DB_WINDOWS_AUTH === 'true'
-const sqlPool = await sql.connect({
+const connectionConfig = {
   ...(useWindowsAuth ? {
     connectionString: `Driver={${process.env.DB_DRIVER || 'ODBC Driver 18 for SQL Server'}};Server=${process.env.DB_HOST || 'localhost'};Database=${process.env.DB_NAME};Trusted_Connection=Yes;TrustServerCertificate=Yes;Encrypt=No`,
   } : {
@@ -17,9 +17,20 @@ const sqlPool = await sql.connect({
   options: {
     encrypt: process.env.DB_ENCRYPT === 'true',
     trustServerCertificate: process.env.DB_TRUST_SERVER_CERTIFICATE !== 'false',
-    trustedConnection: process.env.DB_WINDOWS_AUTH === 'true',
+    trustedConnection: useWindowsAuth,
   },
-})
+}
+
+let sqlPool
+try {
+  sqlPool = await sql.connect(connectionConfig)
+  console.log('Conectado correctamente a SQL Server')
+  console.log(`Base de datos: ${process.env.DB_NAME}`)
+} catch (error) {
+  console.error('Error al conectar con SQL Server:')
+  console.error(error.message)
+  throw error
+}
 
 const replacePlaceholders = (query, values) => {
   let index = 0
